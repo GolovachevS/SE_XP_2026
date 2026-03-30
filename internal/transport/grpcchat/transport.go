@@ -12,12 +12,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// Transport is the concrete gRPC-backed implementation of chatapp.Transport.
 type Transport struct{}
 
+// New creates a transport that dials and serves chat sessions over gRPC.
 func New() *Transport {
 	return &Transport{}
 }
 
+// Dial opens an outgoing bidirectional chat stream to the target peer.
 func (t *Transport) Dial(ctx context.Context, peerAddr string) (chatapp.Session, error) {
 	conn, err := grpc.NewClient(
 		peerAddr,
@@ -48,6 +51,7 @@ func (t *Transport) Dial(ctx context.Context, peerAddr string) (chatapp.Session,
 	}, nil
 }
 
+// Listen starts a gRPC server and exposes accepted chat sessions through a channel.
 func (t *Transport) Listen(ctx context.Context, addr string) (<-chan chatapp.Session, error) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
@@ -60,6 +64,7 @@ func (t *Transport) Listen(ctx context.Context, addr string) (<-chan chatapp.Ses
 
 	go func() {
 		<-ctx.Done()
+		// GracefulStop lets active streams finish before the listener is closed.
 		server.GracefulStop()
 		_ = listener.Close()
 	}()
@@ -78,6 +83,7 @@ type chatServer struct {
 	sessions chan<- chatapp.Session
 }
 
+// ChatStream hands the accepted server-side stream to the app layer as a Session.
 func (s chatServer) ChatStream(stream apichatv1.ChatService_ChatStreamServer) error {
 	session := &Session{
 		stream:  stream,
@@ -89,6 +95,8 @@ func (s chatServer) ChatStream(stream apichatv1.ChatService_ChatStreamServer) er
 	case <-stream.Context().Done():
 	}
 
+	// The app layer owns the session lifecycle after accepting it, so the RPC
+	// handler only needs to stay alive until the stream context is canceled.
 	<-stream.Context().Done()
 
 	if errors.Is(stream.Context().Err(), context.Canceled) {

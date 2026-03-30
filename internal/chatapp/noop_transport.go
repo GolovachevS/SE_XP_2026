@@ -6,8 +6,10 @@ import (
 	"se-xp-2026-chat/internal/chat"
 )
 
+// NoopTransport is a placeholder transport kept for early-stage tests and experiments.
 type NoopTransport struct{}
 
+// NewNoopTransport creates a transport that never performs real network I/O.
 func NewNoopTransport() NoopTransport {
 	return NoopTransport{}
 }
