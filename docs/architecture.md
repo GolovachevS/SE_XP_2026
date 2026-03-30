@@ -129,7 +129,7 @@ classDiagram
 
 ### Модули (логическая структура)
 - `cmd/chat` — точка входа, парсинг флагов, запуск приложения.
-- `internal/chatapp` — оркестрация: старт сервера/клиента, жизненный цикл, контекст отмены.
+- `internal/app` — оркестрация: старт сервера/клиента, жизненный цикл, контекст отмены.
 - `internal/transport/grpcchat` — gRPC реализация: server handler, dialer, stream read/write.
 - `internal/ui/console` — чтение stdin, печать сообщений в stdout.
 - `internal/protocol` — proto-объекты (генерация), адаптеры и валидация.

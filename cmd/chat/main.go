@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"se-xp-2026-chat/internal/chatapp"
+	chatapp "se-xp-2026-chat/internal/app"
 	"se-xp-2026-chat/internal/transport/grpcchat"
 	"se-xp-2026-chat/internal/ui/console"
 )

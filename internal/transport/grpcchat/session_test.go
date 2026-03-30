@@ -7,8 +7,8 @@ import (
 	"time"
 
 	apichatv1 "se-xp-2026-chat/api/chat/v1"
+	chatapp "se-xp-2026-chat/internal/app"
 	"se-xp-2026-chat/internal/chat"
-	"se-xp-2026-chat/internal/chatapp"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

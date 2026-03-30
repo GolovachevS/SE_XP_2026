@@ -6,7 +6,7 @@ import (
 	"net"
 
 	apichatv1 "se-xp-2026-chat/api/chat/v1"
-	"se-xp-2026-chat/internal/chatapp"
+	chatapp "se-xp-2026-chat/internal/app"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
