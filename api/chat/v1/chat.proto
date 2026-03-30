@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package chat.v1;
+
+option go_package = "se-xp-2026-chat/api/chat/v1;chatv1";
+
+import "google/protobuf/timestamp.proto";
+
+service ChatService {
+  rpc ChatStream(stream Envelope) returns (stream Envelope);
+}
+
+message Envelope {
+  string sender = 1;
+  google.protobuf.Timestamp sent_at = 2;
+  string text = 3;
+}
