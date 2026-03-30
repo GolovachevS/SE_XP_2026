@@ -111,10 +111,22 @@ func (a *App) runSession(ctx context.Context, session Session) (retErr error) {
 	case sendErr := <-sendDone:
 		cancel()
 		closeSession()
+		if sendErr == nil {
+			return nil
+		}
+		if errors.Is(sendErr, ErrSessionClosed) || errors.Is(sendErr, context.Canceled) {
+			return nil
+		}
 		return sendErr
 	case recvErr := <-recvDone:
 		cancel()
 		closeSession()
+		if recvErr == nil {
+			return nil
+		}
+		if errors.Is(recvErr, ErrSessionClosed) || errors.Is(recvErr, context.Canceled) {
+			return nil
+		}
 		return recvErr
 	}
 }
