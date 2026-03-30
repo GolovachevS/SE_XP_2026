@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"se-xp-2026-chat/internal/chat"
 )
@@ -130,6 +131,167 @@ func TestAppRunPropagatesCloseError(t *testing.T) {
 	}
 }
 
+func TestAppRunServerReturnsContextErrorWhileWaitingForSession(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	transport := &stubTransport{sessions: make(chan Session)}
+	ui := &stubUI{}
+	app := New(
+		Config{Name: "Alice", ListenAddr: ":50051"},
+		ui,
+		transport,
+	)
+
+	err := app.Run(ctx)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+}
+
+func TestSendLoopSendsMessagesFromUI(t *testing.T) {
+	t.Parallel()
+
+	ui := &stubUI{lines: []string{"  hello  "}}
+	session := &stubSession{}
+	app := New(
+		Config{Name: "Alice"},
+		ui,
+		&stubTransport{},
+	)
+
+	err := app.sendLoop(context.Background(), session)
+	if err != nil {
+		t.Fatalf("sendLoop returned error: %v", err)
+	}
+
+	if len(session.sent) != 1 {
+		t.Fatalf("expected 1 sent message, got %d", len(session.sent))
+	}
+
+	got := session.sent[0]
+	if got.Sender != "Alice" {
+		t.Fatalf("unexpected sender: %q", got.Sender)
+	}
+	if got.Text != "hello" {
+		t.Fatalf("unexpected text: %q", got.Text)
+	}
+	if got.SentAt.IsZero() {
+		t.Fatal("expected non-zero sent time")
+	}
+}
+
+func TestRecvLoopPrintsMessagesUntilSessionClosed(t *testing.T) {
+	t.Parallel()
+
+	msg := chat.Message{
+		Sender: "Bob",
+		SentAt: time.Date(2026, time.March, 30, 12, 0, 0, 0, time.UTC),
+		Text:   "hi",
+	}
+	session := &stubSession{
+		recvMsgs: []chat.Message{msg},
+	}
+	ui := &stubUI{}
+	app := New(
+		Config{Name: "Alice"},
+		ui,
+		&stubTransport{},
+	)
+
+	err := app.recvLoop(context.Background(), session)
+	if err != nil {
+		t.Fatalf("recvLoop returned error: %v", err)
+	}
+
+	if len(ui.msgs) != 1 {
+		t.Fatalf("expected 1 printed message, got %d", len(ui.msgs))
+	}
+
+	if got := ui.msgs[0]; got != msg {
+		t.Fatalf("unexpected printed message: %#v", got)
+	}
+}
+
+func TestSendLoopPropagatesSessionError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("send failed")
+	ui := &stubUI{lines: []string{"hello"}}
+	session := &stubSession{sendErr: wantErr}
+	app := New(
+		Config{Name: "Alice"},
+		ui,
+		&stubTransport{},
+	)
+
+	err := app.sendLoop(context.Background(), session)
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("expected %v, got %v", wantErr, err)
+	}
+}
+
+func TestRecvLoopPropagatesUnexpectedError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("recv failed")
+	session := &stubSession{recvErr: wantErr}
+	app := New(
+		Config{Name: "Alice"},
+		&stubUI{},
+		&stubTransport{},
+	)
+
+	err := app.recvLoop(context.Background(), session)
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("expected %v, got %v", wantErr, err)
+	}
+}
+
+func TestRunSessionReturnsNilOnRemoteDisconnectWhileInputWaits(t *testing.T) {
+	t.Parallel()
+
+	ui := &blockingUI{}
+	session := &stubSession{recvErr: ErrSessionClosed}
+	app := New(
+		Config{Name: "Alice"},
+		ui,
+		&stubTransport{},
+	)
+
+	err := app.runSession(context.Background(), session)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if session.closeCalls != 1 {
+		t.Fatalf("expected session to be closed once, got %d", session.closeCalls)
+	}
+}
+
+func TestRunSessionStopsOnEOFFromInput(t *testing.T) {
+	t.Parallel()
+
+	ui := &stubUI{}
+	session := &stubSession{}
+	app := New(
+		Config{Name: "Alice"},
+		ui,
+		&stubTransport{},
+	)
+
+	err := app.runSession(context.Background(), session)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	if session.closeCalls != 1 {
+		t.Fatalf("expected session to be closed once, got %d", session.closeCalls)
+	}
+}
+
 type stubUI struct {
 	statuses []string
 	errors   []string
@@ -155,6 +317,19 @@ func (s *stubUI) ReadLines(context.Context) <-chan string {
 		ch <- line
 	}
 	close(ch)
+	return ch
+}
+
+type blockingUI struct {
+	stubUI
+}
+
+func (b *blockingUI) ReadLines(ctx context.Context) <-chan string {
+	ch := make(chan string)
+	go func() {
+		<-ctx.Done()
+		close(ch)
+	}()
 	return ch
 }
 
@@ -193,13 +368,33 @@ func (s *stubTransport) Dial(_ context.Context, peerAddr string) (Session, error
 type stubSession struct {
 	closeCalls int
 	closeErr   error
+	sendErr    error
+	sent       []chat.Message
+	recvMsgs   []chat.Message
+	recvErr    error
+	recvIndex  int
 }
 
-func (*stubSession) Send(context.Context, chat.Message) error {
+func (s *stubSession) Send(_ context.Context, msg chat.Message) error {
+	if s.sendErr != nil {
+		return s.sendErr
+	}
+
+	s.sent = append(s.sent, msg)
 	return nil
 }
 
-func (*stubSession) Recv(context.Context) (chat.Message, error) {
+func (s *stubSession) Recv(context.Context) (chat.Message, error) {
+	if s.recvIndex < len(s.recvMsgs) {
+		msg := s.recvMsgs[s.recvIndex]
+		s.recvIndex++
+		return msg, nil
+	}
+
+	if s.recvErr != nil {
+		return chat.Message{}, s.recvErr
+	}
+
 	return chat.Message{}, ErrSessionClosed
 }
 
