@@ -1,22 +1,25 @@
 package main
 
 import (
-	"flag"
-	"fmt"
+	"context"
 	"os"
+
+	"se-xp-2026-chat/internal/chatapp"
+	"se-xp-2026-chat/internal/ui/console"
 )
 
 func main() {
-	name := flag.String("name", "", "username (required)")
-	peer := flag.String("peer", "", "peer address host:port to connect to (optional)")
-	listen := flag.String("listen", ":50051", "listen address host:port (used when acting as server)")
-	flag.Parse()
-
-	if *name == "" {
-		fmt.Fprintln(os.Stderr, "-name is required")
+	cfg, err := chatapp.ParseArgs(os.Args[1:])
+	if err != nil {
+		_, _ = os.Stderr.WriteString(err.Error() + "\n")
 		os.Exit(2)
 	}
 
-	// Placeholder: networking will be implemented next.
-	fmt.Printf("p2p-grpc-chat (stub) name=%s listen=%s peer=%s\n", *name, *listen, *peer)
+	ui := console.New(os.Stdout, os.Stderr)
+	app := chatapp.New(cfg, ui)
+
+	if err := app.Run(context.Background()); err != nil {
+		ui.PrintError("application error: %v", err)
+		os.Exit(1)
+	}
 }
