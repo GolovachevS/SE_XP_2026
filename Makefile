@@ -1,4 +1,4 @@
-.PHONY: fmt fmt-check lint test build proto
+.PHONY: fmt fmt-check lint test cover build proto
 
 BINARY_NAME ?= chat
 PROTO_FILES := api/chat/v1/chat.proto
@@ -19,6 +19,19 @@ lint:
 
 test:
 	go test ./...
+
+cover:
+	go test ./... -coverprofile=coverage.out
+	go tool cover -html=coverage.out -o coverage.html
+ifeq ($(OS),Windows_NT)
+	@powershell -NoProfile -Command "Start-Process coverage.html"
+else
+	@if [ "$$(uname)" = "Darwin" ]; then \
+		open coverage.html; \
+	else \
+		xdg-open coverage.html; \
+	fi
+endif
 
 build:
 	go build -o bin/$(BINARY_NAME) ./cmd/chat

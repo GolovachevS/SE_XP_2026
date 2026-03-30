@@ -99,3 +99,18 @@ func TestIsEmptyText_AfterNormalization(t *testing.T) {
 		t.Fatalf("expected empty text")
 	}
 }
+
+func TestMessageFormat_PreservesUnicode(t *testing.T) {
+	t.Parallel()
+
+	sentAt := time.Date(2026, time.March, 30, 12, 0, 0, 0, time.UTC)
+	msg, err := NewMessage("Анна", sentAt, "привет, мир")
+	if err != nil {
+		t.Fatalf("NewMessage returned error: %v", err)
+	}
+
+	want := "2026-03-30 12:00:00 Анна: привет, мир"
+	if got := msg.Format(); got != want {
+		t.Fatalf("unexpected format: %q", got)
+	}
+}
