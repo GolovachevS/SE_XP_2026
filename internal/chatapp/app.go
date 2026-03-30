@@ -8,25 +8,46 @@ type StatusReporter interface {
 }
 
 type App struct {
-	cfg Config
-	ui  StatusReporter
+	cfg       Config
+	ui        StatusReporter
+	transport Transport
 }
 
-func New(cfg Config, ui StatusReporter) *App {
+func New(cfg Config, ui StatusReporter, transport Transport) *App {
 	return &App{
-		cfg: cfg,
-		ui:  ui,
+		cfg:       cfg,
+		ui:        ui,
+		transport: transport,
 	}
 }
 
-func (a *App) Run(_ context.Context) error {
-	a.ui.PrintStatus(
-		"chat skeleton started: mode=%s name=%s listen=%s peer=%s",
-		a.cfg.Mode(),
-		a.cfg.Name,
-		a.cfg.ListenAddr,
-		a.cfg.PeerAddr,
-	)
+func (a *App) Run(ctx context.Context) error {
+	if a.cfg.Mode() == "client" {
+		return a.runClient(ctx)
+	}
+
+	return a.runServer(ctx)
+}
+
+func (a *App) runClient(ctx context.Context) error {
+	session, err := a.transport.Dial(ctx, a.cfg.PeerAddr)
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	a.ui.PrintStatus("chat skeleton connected to %s as %s", a.cfg.PeerAddr, a.cfg.Name)
+
+	return nil
+}
+
+func (a *App) runServer(ctx context.Context) error {
+	_, err := a.transport.Listen(ctx, a.cfg.ListenAddr)
+	if err != nil {
+		return err
+	}
+
+	a.ui.PrintStatus("chat skeleton listening on %s as %s", a.cfg.ListenAddr, a.cfg.Name)
 
 	return nil
 }

@@ -16,7 +16,7 @@ func main() {
 	}
 
 	ui := console.New(os.Stdout, os.Stderr)
-	app := chatapp.New(cfg, ui)
+	app := chatapp.New(cfg, ui, chatapp.NewNoopTransport())
 
 	if err := app.Run(context.Background()); err != nil {
 		ui.PrintError("application error: %v", err)
