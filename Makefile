@@ -24,7 +24,8 @@ build:
 	go build -o bin/$(BINARY_NAME) ./cmd/chat
 
 proto:
-	PATH="$(PATH):$$(go env GOPATH)/bin" protoc -I . \
-		--go_out=. --go_opt=paths=source_relative \
-		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
-		$(PROTO_FILES)
+ifeq ($(OS),Windows_NT)
+	@powershell -NoProfile -Command "$$gopath = (go env GOPATH); $$env:PATH = $$env:PATH + ';' + $$gopath + '\\bin'; protoc -I . --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative $(PROTO_FILES)"
+else
+	@sh -ec 'PATH="$$PATH:$(shell go env GOPATH)/bin" protoc -I . --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative $(PROTO_FILES)'
+endif
