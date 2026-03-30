@@ -34,6 +34,10 @@ func TestAppRunServerUsesListen(t *testing.T) {
 	if len(ui.statuses) != 1 {
 		t.Fatalf("unexpected statuses count: %d", len(ui.statuses))
 	}
+
+	if got := ui.statuses[0]; got != "chat skeleton prepared server mode on :50051 as Alice" {
+		t.Fatalf("unexpected status: %q", got)
+	}
 }
 
 func TestAppRunClientUsesDial(t *testing.T) {
@@ -60,6 +64,14 @@ func TestAppRunClientUsesDial(t *testing.T) {
 
 	if transport.session.closeCalls != 1 {
 		t.Fatalf("expected session to be closed once, got %d", transport.session.closeCalls)
+	}
+
+	if len(ui.statuses) != 1 {
+		t.Fatalf("unexpected statuses count: %d", len(ui.statuses))
+	}
+
+	if got := ui.statuses[0]; got != "chat skeleton prepared client mode for 127.0.0.1:50051 as Bob" {
+		t.Fatalf("unexpected status: %q", got)
 	}
 }
 

@@ -41,7 +41,7 @@ func (a *App) runClient(ctx context.Context) (retErr error) {
 		}
 	}()
 
-	a.ui.PrintStatus("chat skeleton connected to %s as %s", a.cfg.PeerAddr, a.cfg.Name)
+	a.ui.PrintStatus("chat skeleton prepared client mode for %s as %s", a.cfg.PeerAddr, a.cfg.Name)
 
 	return nil
 }
@@ -52,7 +52,7 @@ func (a *App) runServer(ctx context.Context) error {
 		return err
 	}
 
-	a.ui.PrintStatus("chat skeleton listening on %s as %s", a.cfg.ListenAddr, a.cfg.Name)
+	a.ui.PrintStatus("chat skeleton prepared server mode on %s as %s", a.cfg.ListenAddr, a.cfg.Name)
 
 	return nil
 }

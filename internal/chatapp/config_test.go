@@ -32,6 +32,28 @@ func TestParseArgsUsesDefaults(t *testing.T) {
 	}
 }
 
+func TestParseArgsTrimsName(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := ParseArgs([]string{"-name", "  Alice  "})
+	if err != nil {
+		t.Fatalf("ParseArgs returned error: %v", err)
+	}
+
+	if cfg.Name != "Alice" {
+		t.Fatalf("unexpected name: %q", cfg.Name)
+	}
+}
+
+func TestParseArgsRejectsWhitespaceOnlyName(t *testing.T) {
+	t.Parallel()
+
+	_, err := ParseArgs([]string{"-name", "   "})
+	if err != ErrNameRequired {
+		t.Fatalf("expected ErrNameRequired, got %v", err)
+	}
+}
+
 func TestParseArgsClientMode(t *testing.T) {
 	t.Parallel()
 

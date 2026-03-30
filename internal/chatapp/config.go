@@ -3,6 +3,7 @@ package chatapp
 import (
 	"errors"
 	"flag"
+	"strings"
 )
 
 const defaultListenAddr = ":50051"
@@ -26,6 +27,8 @@ func ParseArgs(args []string) (Config, error) {
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err
 	}
+
+	cfg.Name = strings.TrimSpace(cfg.Name)
 
 	if cfg.Name == "" {
 		return Config{}, ErrNameRequired
