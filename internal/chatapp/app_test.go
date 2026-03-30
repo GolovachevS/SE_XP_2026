@@ -12,8 +12,12 @@ import (
 func TestAppRunServerUsesListen(t *testing.T) {
 	t.Parallel()
 
-	transport := &stubTransport{}
-	ui := &stubReporter{}
+	sessions := make(chan Session, 1)
+	sessions <- &stubSession{}
+	close(sessions)
+
+	transport := &stubTransport{sessions: sessions}
+	ui := &stubUI{}
 	app := New(Config{
 		Name:       "Alice",
 		ListenAddr: ":50051",
@@ -44,7 +48,7 @@ func TestAppRunClientUsesDial(t *testing.T) {
 	t.Parallel()
 
 	transport := &stubTransport{}
-	ui := &stubReporter{}
+	ui := &stubUI{}
 	app := New(Config{
 		Name:     "Bob",
 		PeerAddr: "127.0.0.1:50051",
@@ -81,7 +85,7 @@ func TestAppRunPropagatesListenError(t *testing.T) {
 	wantErr := errors.New("listen failed")
 	app := New(
 		Config{Name: "Alice", ListenAddr: ":50051"},
-		&stubReporter{},
+		&stubUI{},
 		&stubTransport{listenErr: wantErr},
 	)
 
@@ -97,7 +101,7 @@ func TestAppRunPropagatesDialError(t *testing.T) {
 	wantErr := errors.New("dial failed")
 	app := New(
 		Config{Name: "Bob", PeerAddr: "127.0.0.1:50051"},
-		&stubReporter{},
+		&stubUI{},
 		&stubTransport{dialErr: wantErr},
 	)
 
@@ -116,7 +120,7 @@ func TestAppRunPropagatesCloseError(t *testing.T) {
 	}
 	app := New(
 		Config{Name: "Bob", PeerAddr: "127.0.0.1:50051"},
-		&stubReporter{},
+		&stubUI{},
 		transport,
 	)
 
@@ -126,17 +130,32 @@ func TestAppRunPropagatesCloseError(t *testing.T) {
 	}
 }
 
-type stubReporter struct {
+type stubUI struct {
 	statuses []string
 	errors   []string
+	lines    []string
+	msgs     []chat.Message
 }
 
-func (s *stubReporter) PrintStatus(format string, args ...any) {
+func (s *stubUI) PrintStatus(format string, args ...any) {
 	s.statuses = append(s.statuses, fmt.Sprintf(format, args...))
 }
 
-func (s *stubReporter) PrintError(format string, args ...any) {
+func (s *stubUI) PrintError(format string, args ...any) {
 	s.errors = append(s.errors, fmt.Sprintf(format, args...))
+}
+
+func (s *stubUI) PrintMessage(msg chat.Message) {
+	s.msgs = append(s.msgs, msg)
+}
+
+func (s *stubUI) ReadLines(context.Context) <-chan string {
+	ch := make(chan string, len(s.lines))
+	for _, line := range s.lines {
+		ch <- line
+	}
+	close(ch)
+	return ch
 }
 
 type stubTransport struct {
@@ -145,6 +164,7 @@ type stubTransport struct {
 	listenErr  error
 	dialErr    error
 	session    stubSession
+	sessions   <-chan Session
 }
 
 func (s *stubTransport) Listen(_ context.Context, addr string) (<-chan Session, error) {
@@ -153,6 +173,9 @@ func (s *stubTransport) Listen(_ context.Context, addr string) (<-chan Session, 
 	}
 
 	s.listenAddr = addr
+	if s.sessions != nil {
+		return s.sessions, nil
+	}
 
 	return make(chan Session), nil
 }
