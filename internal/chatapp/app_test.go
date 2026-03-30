@@ -35,7 +35,7 @@ func TestAppRunServerUsesListen(t *testing.T) {
 		t.Fatalf("unexpected statuses count: %d", len(ui.statuses))
 	}
 
-	if got := ui.statuses[0]; got != "chat skeleton prepared server mode on :50051 as Alice" {
+	if got := ui.statuses[0]; got != "chat server listening on :50051 as Alice" {
 		t.Fatalf("unexpected status: %q", got)
 	}
 }
@@ -70,7 +70,7 @@ func TestAppRunClientUsesDial(t *testing.T) {
 		t.Fatalf("unexpected statuses count: %d", len(ui.statuses))
 	}
 
-	if got := ui.statuses[0]; got != "chat skeleton prepared client mode for 127.0.0.1:50051 as Bob" {
+	if got := ui.statuses[0]; got != "chat client connected to 127.0.0.1:50051 as Bob" {
 		t.Fatalf("unexpected status: %q", got)
 	}
 }

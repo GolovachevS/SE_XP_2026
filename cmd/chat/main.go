@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"se-xp-2026-chat/internal/chatapp"
+	"se-xp-2026-chat/internal/transport/grpcchat"
 	"se-xp-2026-chat/internal/ui/console"
 )
 
@@ -16,7 +17,7 @@ func main() {
 	}
 
 	ui := console.New(os.Stdout, os.Stderr)
-	app := chatapp.New(cfg, ui, chatapp.NewNoopTransport())
+	app := chatapp.New(cfg, ui, grpcchat.New())
 
 	if err := app.Run(context.Background()); err != nil {
 		ui.PrintError("application error: %v", err)
