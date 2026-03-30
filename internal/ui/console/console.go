@@ -81,6 +81,10 @@ func (ui *UI) ReadLines(ctx context.Context) <-chan string {
 			case out <- line:
 			}
 		}
+
+		if err := scanner.Err(); err != nil {
+			ui.PrintError("stdin read error: %v", err)
+		}
 	}()
 
 	return out
