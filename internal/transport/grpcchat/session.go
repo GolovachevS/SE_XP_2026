@@ -9,6 +9,9 @@ import (
 	"se-xp-2026-chat/internal/chat"
 	"se-xp-2026-chat/internal/chatapp"
 	protocolchatv1 "se-xp-2026-chat/internal/protocol/chatv1"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type messageStream interface {
@@ -45,6 +48,9 @@ func (s *Session) Send(ctx context.Context, msg chat.Message) error {
 		if errors.Is(err, io.EOF) {
 			return chatapp.ErrSessionClosed
 		}
+		if isDisconnectError(err) {
+			return chatapp.ErrSessionClosed
+		}
 
 		return err
 	}
@@ -62,11 +68,28 @@ func (s *Session) Recv(ctx context.Context) (chat.Message, error) {
 		if errors.Is(err, io.EOF) {
 			return chat.Message{}, chatapp.ErrSessionClosed
 		}
+		if isDisconnectError(err) {
+			return chat.Message{}, chatapp.ErrSessionClosed
+		}
 
 		return chat.Message{}, err
 	}
 
 	return protocolchatv1.FromEnvelope(envelope), nil
+}
+
+func isDisconnectError(err error) bool {
+	st, ok := status.FromError(err)
+	if !ok {
+		return false
+	}
+
+	switch st.Code() {
+	case codes.Unavailable, codes.Canceled:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Session) Close() error {
