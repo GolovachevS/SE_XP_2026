@@ -1,0 +1,10 @@
+# Enforce LF in repo to keep gofmt checks consistent across OS (esp. Windows)
+* text=auto eol=lf
+
+# Go sources must be LF (otherwise gofmt -l fails on Windows)
+*.go text eol=lf
+
+# Common text files
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
