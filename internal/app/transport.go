@@ -1,4 +1,4 @@
-package chatapp
+package app
 
 import (
 	"context"

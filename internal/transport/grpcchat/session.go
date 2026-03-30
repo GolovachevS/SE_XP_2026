@@ -6,8 +6,8 @@ import (
 	"io"
 
 	apichatv1 "se-xp-2026-chat/api/chat/v1"
+	chatapp "se-xp-2026-chat/internal/app"
 	"se-xp-2026-chat/internal/chat"
-	"se-xp-2026-chat/internal/chatapp"
 	protocolchatv1 "se-xp-2026-chat/internal/protocol/chatv1"
 )
 
