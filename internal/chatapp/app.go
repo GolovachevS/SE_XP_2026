@@ -29,12 +29,17 @@ func (a *App) Run(ctx context.Context) error {
 	return a.runServer(ctx)
 }
 
-func (a *App) runClient(ctx context.Context) error {
+func (a *App) runClient(ctx context.Context) (retErr error) {
 	session, err := a.transport.Dial(ctx, a.cfg.PeerAddr)
 	if err != nil {
 		return err
 	}
-	defer session.Close()
+	defer func() {
+		closeErr := session.Close()
+		if closeErr != nil && retErr == nil {
+			retErr = closeErr
+		}
+	}()
 
 	a.ui.PrintStatus("chat skeleton connected to %s as %s", a.cfg.PeerAddr, a.cfg.Name)
 

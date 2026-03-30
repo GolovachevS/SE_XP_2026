@@ -95,6 +95,25 @@ func TestAppRunPropagatesDialError(t *testing.T) {
 	}
 }
 
+func TestAppRunPropagatesCloseError(t *testing.T) {
+	t.Parallel()
+
+	wantErr := errors.New("close failed")
+	transport := &stubTransport{
+		session: stubSession{closeErr: wantErr},
+	}
+	app := New(
+		Config{Name: "Bob", PeerAddr: "127.0.0.1:50051"},
+		&stubReporter{},
+		transport,
+	)
+
+	err := app.Run(context.Background())
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("expected %v, got %v", wantErr, err)
+	}
+}
+
 type stubReporter struct {
 	statuses []string
 	errors   []string
@@ -138,6 +157,7 @@ func (s *stubTransport) Dial(_ context.Context, peerAddr string) (Session, error
 
 type stubSession struct {
 	closeCalls int
+	closeErr   error
 }
 
 func (*stubSession) Send(context.Context, chat.Message) error {
@@ -150,5 +170,5 @@ func (*stubSession) Recv(context.Context) (chat.Message, error) {
 
 func (s *stubSession) Close() error {
 	s.closeCalls++
-	return nil
+	return s.closeErr
 }
