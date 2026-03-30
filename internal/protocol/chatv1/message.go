@@ -7,6 +7,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// ToEnvelope converts the internal message model into the protobuf transport shape.
 func ToEnvelope(msg chat.Message) *chatv1.Envelope {
 	return &chatv1.Envelope{
 		Sender: msg.Sender,
@@ -15,6 +16,7 @@ func ToEnvelope(msg chat.Message) *chatv1.Envelope {
 	}
 }
 
+// FromEnvelope converts a protobuf message received over gRPC into the domain model.
 func FromEnvelope(envelope *chatv1.Envelope) chat.Message {
 	if envelope == nil {
 		return chat.Message{}

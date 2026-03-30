@@ -19,12 +19,14 @@ type UI interface {
 	ReadLines(ctx context.Context) <-chan string
 }
 
+// App orchestrates UI and transport into a single chat session lifecycle.
 type App struct {
 	cfg       Config
 	ui        UI
 	transport Transport
 }
 
+// New creates an application instance with injected UI and transport dependencies.
 func New(cfg Config, ui UI, transport Transport) *App {
 	return &App{
 		cfg:       cfg,
@@ -33,6 +35,7 @@ func New(cfg Config, ui UI, transport Transport) *App {
 	}
 }
 
+// Run selects server or client flow based on CLI config and blocks until it finishes.
 func (a *App) Run(ctx context.Context) error {
 	if a.cfg.Mode() == "client" {
 		return a.runClient(ctx)
@@ -81,6 +84,8 @@ func (a *App) runSession(ctx context.Context, session Session) (retErr error) {
 		})
 	}
 	defer func() {
+		// A deferred close keeps the common exit path safe even if we return
+		// before one of the loops reaches its normal shutdown sequence.
 		closeSession()
 		if retErr == nil && closeErr != nil {
 			retErr = closeErr
@@ -126,6 +131,7 @@ func (a *App) runSession(ctx context.Context, session Session) (retErr error) {
 	}
 }
 
+// sendLoop converts user input into chat messages and pushes them to the session.
 func (a *App) sendLoop(ctx context.Context, session Session) error {
 	for line := range a.ui.ReadLines(ctx) {
 		msg, err := chat.NewMessage(a.cfg.Name, time.Now(), line)
@@ -142,6 +148,7 @@ func (a *App) sendLoop(ctx context.Context, session Session) error {
 	return nil
 }
 
+// recvLoop keeps pulling messages from the session and renders them through the UI.
 func (a *App) recvLoop(ctx context.Context, session Session) error {
 	for {
 		msg, err := session.Recv(ctx)
