@@ -53,3 +53,26 @@ func TestSessionSend_TreatsUnavailableAsSessionClosed(t *testing.T) {
 		t.Fatalf("expected ErrSessionClosed, got %v", err)
 	}
 }
+
+func TestSessionRecv_TreatsCanceledAsSessionClosed(t *testing.T) {
+	t.Parallel()
+
+	s := &Session{stream: stubStream{recvErr: status.Error(codes.Canceled, "context canceled")}, closeFn: func() error { return nil }}
+
+	_, err := s.Recv(context.Background())
+	if !errors.Is(err, chatapp.ErrSessionClosed) {
+		t.Fatalf("expected ErrSessionClosed, got %v", err)
+	}
+}
+
+func TestSessionSend_TreatsCanceledAsSessionClosed(t *testing.T) {
+	t.Parallel()
+
+	s := &Session{stream: stubStream{sendErr: status.Error(codes.Canceled, "context canceled")}, closeFn: func() error { return nil }}
+
+	msg := chat.Message{Sender: "Alice", SentAt: time.Now(), Text: "hi"}
+	err := s.Send(context.Background(), msg)
+	if !errors.Is(err, chatapp.ErrSessionClosed) {
+		t.Fatalf("expected ErrSessionClosed, got %v", err)
+	}
+}
