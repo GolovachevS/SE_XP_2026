@@ -87,24 +87,31 @@ func (a *App) runSession(ctx context.Context, session Session) (retErr error) {
 		}
 	}()
 
+	sendDone := make(chan error, 1)
 	recvDone := make(chan error, 1)
+
+	go func() {
+		sendDone <- a.sendLoop(childCtx, session)
+	}()
 	go func() {
 		recvDone <- a.recvLoop(childCtx, session)
 	}()
 
-	sendErr := a.sendLoop(childCtx, session)
-	cancel()
-	closeSession()
-
-	recvErr := <-recvDone
-	if sendErr != nil {
+	// Stop the whole session as soon as either side finishes.
+	//
+	// Note: sendLoop may be blocked in UI.ReadLines() waiting for stdin.
+	// Cancellation cannot always interrupt the OS read, so we don't wait for
+	// sendLoop to finish if recvLoop ends first.
+	select {
+	case sendErr := <-sendDone:
+		cancel()
+		closeSession()
 		return sendErr
-	}
-	if recvErr != nil {
+	case recvErr := <-recvDone:
+		cancel()
+		closeSession()
 		return recvErr
 	}
-
-	return nil
 }
 
 func (a *App) sendLoop(ctx context.Context, session Session) error {
