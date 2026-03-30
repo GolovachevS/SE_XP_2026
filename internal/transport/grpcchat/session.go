@@ -17,11 +17,13 @@ type messageStream interface {
 	Context() context.Context
 }
 
+// Session adapts a gRPC bidi stream to the app-level chatapp.Session interface.
 type Session struct {
 	stream  messageStream
 	closeFn func() error
 }
 
+// NewClientSession wraps a client-side ChatStream as a chat session.
 func NewClientSession(stream apichatv1.ChatService_ChatStreamClient) *Session {
 	return &Session{
 		stream:  stream,
@@ -29,6 +31,7 @@ func NewClientSession(stream apichatv1.ChatService_ChatStreamClient) *Session {
 	}
 }
 
+// NewServerSession wraps a server-side ChatStream as a chat session.
 func NewServerSession(stream apichatv1.ChatService_ChatStreamServer) *Session {
 	return &Session{
 		stream:  stream,
@@ -36,6 +39,7 @@ func NewServerSession(stream apichatv1.ChatService_ChatStreamServer) *Session {
 	}
 }
 
+// Send serializes a domain message and forwards it to the remote peer.
 func (s *Session) Send(ctx context.Context, msg chat.Message) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -52,6 +56,7 @@ func (s *Session) Send(ctx context.Context, msg chat.Message) error {
 	return nil
 }
 
+// Recv reads the next protobuf message from the stream and maps it to the domain model.
 func (s *Session) Recv(ctx context.Context) (chat.Message, error) {
 	if err := ctx.Err(); err != nil {
 		return chat.Message{}, err
@@ -69,6 +74,7 @@ func (s *Session) Recv(ctx context.Context) (chat.Message, error) {
 	return protocolchatv1.FromEnvelope(envelope), nil
 }
 
+// Close releases transport resources owned by the session.
 func (s *Session) Close() error {
 	return s.closeFn()
 }

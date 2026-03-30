@@ -8,14 +8,17 @@ import (
 
 const defaultListenAddr = ":50051"
 
+// ErrNameRequired is returned when the required -name flag is missing.
 var ErrNameRequired = errors.New("-name is required")
 
+// Config stores runtime settings parsed from CLI flags.
 type Config struct {
 	Name       string
 	PeerAddr   string
 	ListenAddr string
 }
 
+// ParseArgs parses CLI flags and returns normalized application config.
 func ParseArgs(args []string) (Config, error) {
 	fs := flag.NewFlagSet("chat", flag.ContinueOnError)
 
@@ -37,6 +40,7 @@ func ParseArgs(args []string) (Config, error) {
 	return cfg, nil
 }
 
+// Mode reports whether the app should wait for an incoming session or dial a peer.
 func (c Config) Mode() string {
 	if c.PeerAddr == "" {
 		return "server"

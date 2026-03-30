@@ -36,10 +36,12 @@ func NewWithStreams(in io.Reader, out io.Writer, err io.Writer) *UI {
 	}
 }
 
+// PrintStatus writes a human-readable lifecycle/status message to stdout.
 func (ui *UI) PrintStatus(format string, args ...any) {
 	_, _ = fmt.Fprintf(ui.out, format+"\n", args...)
 }
 
+// PrintError writes an error message to stderr.
 func (ui *UI) PrintError(format string, args ...any) {
 	_, _ = fmt.Fprintf(ui.err, format+"\n", args...)
 }

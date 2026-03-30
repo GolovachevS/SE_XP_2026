@@ -52,6 +52,7 @@ func NewMessage(sender string, sentAt time.Time, text string) (Message, error) {
 	return msg, nil
 }
 
+// Validate checks that a message contains all fields required for sending/rendering.
 func (m Message) Validate() error {
 	if IsEmptyText(m.Sender) {
 		return ErrSenderRequired
