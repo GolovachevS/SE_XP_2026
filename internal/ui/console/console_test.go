@@ -3,6 +3,7 @@ package console
 import (
 	"bytes"
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -89,4 +90,48 @@ func TestPrintMessage_UsesDomainFormat(t *testing.T) {
 	if got := err.String(); got != "" {
 		t.Fatalf("unexpected stderr: %q", got)
 	}
+}
+
+func TestReadLines_ReportsScannerError(t *testing.T) {
+	t.Parallel()
+
+	in := &errorAfterReader{
+		data: []byte("hello\n"),
+		err:  errors.New("boom"),
+	}
+	var out bytes.Buffer
+	var err bytes.Buffer
+	ui := NewWithStreams(in, &out, &err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var got []string
+	for line := range ui.ReadLines(ctx) {
+		got = append(got, line)
+	}
+
+	if len(got) != 1 || got[0] != "hello" {
+		t.Fatalf("unexpected lines: %#v", got)
+	}
+
+	if stderr := err.String(); !strings.Contains(stderr, "stdin read error") || !strings.Contains(stderr, "boom") {
+		t.Fatalf("expected read error to be reported, got: %q", stderr)
+	}
+}
+
+type errorAfterReader struct {
+	data []byte
+	pos  int
+	err  error
+}
+
+func (r *errorAfterReader) Read(p []byte) (int, error) {
+	if r.pos < len(r.data) {
+		n := copy(p, r.data[r.pos:])
+		r.pos += n
+		return n, nil
+	}
+
+	return 0, r.err
 }
