@@ -30,6 +30,12 @@
   - **bidirectional streaming** естественен для чата;
   - типизация и расширяемость протокола без ломки формата.
 
+## 3.1 Декомпозиция задач
+
+Плановое распределение задач между участниками команды вынесено в отдельный документ:
+
+- [docs/task-decomposition.md](task-decomposition.md)
+
 ## 4. Обзор решения
 Каждый экземпляр приложения может:
 - слушать входящие подключения (gRPC server),
@@ -135,7 +141,7 @@ classDiagram
 - `internal/protocol` — proto-объекты (генерация), адаптеры и валидация.
 
 ## 7. gRPC контракт
-- Сервис: `Chat`
+- Сервис: `ChatService`
 - RPC: `ChatStream(stream Envelope) returns (stream Envelope)`
 - Сообщение: `Envelope { sender, sent_at, text }`
 
