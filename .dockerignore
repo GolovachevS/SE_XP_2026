@@ -1,7 +1,0 @@
-.git
-.github
-bin
-**/*.exe
-**/*.test
-**/*.out
-**/*.log
